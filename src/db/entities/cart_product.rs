@@ -13,9 +13,9 @@ pub struct Model {
     pub color: String,
     #[sea_orm(column_type = "Integer")]
     pub size: i32,
-    #[sea_orm(column_type = "Integer", belongs_to = "super::cart::Entity", column_name = "CartId")]
+    #[sea_orm(column_type = "Integer", column_name = "CartId")]
     pub cart_id: i32,  // Внешний ключ на Cart
-    #[sea_orm(column_type = "Integer", belongs_to = "super::product::Entity", column_name = "ProductId")]
+    #[sea_orm(column_type = "Integer", column_name = "ProductId")]
     pub product_id: i32, // Внешний ключ на Product
 
     #[sea_orm(default_expr = "Expr::current_timestamp()")]

@@ -1,11 +1,11 @@
-use sea_orm::{ActiveModelTrait, DatabaseConnection, Set, Condition, EntityTrait, ColumnTrait, QueryFilter, DeleteResult};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, Set, Condition, EntityTrait, ColumnTrait, QueryFilter, DeleteResult, QuerySelect};
 use std::sync::Arc;
 use crate::db::entities::favorite::{ActiveModel, Model as FavoriteModel, Column as FavoriteColumn, Entity as FavoriteEntity};
 use crate::db::entities::favorite_product::{ Model as FavoriteProductModel, Column as FavoriteProductColumn, Entity as FavoriteProductEntity, ActiveModel as FavoriteProductActiveModel };
-use crate::db::entities::product::{ Column as ProductColumn, Entity as ProductEntity, Model as ProductModel };
 use anyhow::Result;
 use chrono::Utc;
 
+#[derive(Clone)]
 pub struct DBFavoritesRepository {
     connection: Arc<DatabaseConnection>,
 }
@@ -39,19 +39,8 @@ impl DBFavoritesRepository {
         Ok(favorites)
     }
 
-    /* Получаем элементы из таблицы Product на основании ID избранных */
-    pub async fn get_product_item_by_favorite_id(&self, product_id: i32) -> Result<ProductModel> {
-        let mut condition = Condition::any();
-        condition = condition.add(ProductColumn::Id.eq(product_id));
-        let product_item = ProductEntity::find()
-            .filter(condition)
-            .one(&*self.connection)
-            .await?
-            .unwrap();
-        Ok(product_item)
-    }
 
-    pub async fn get_favorites_list(&self, favorites_id: i32) -> Result<Vec<FavoriteProductModel>> {
+    pub async fn get_user_favorite_products(&self, favorites_id: i32) -> Result<Vec<FavoriteProductModel>> {
         let mut condition = Condition::all();
         condition = condition.add(FavoriteProductColumn::FavoriteId.eq(favorites_id));
         let favorites = FavoriteProductEntity::find()
@@ -97,6 +86,20 @@ impl DBFavoritesRepository {
             .await?;
 
         Ok(deleted)
+    }
+
+    pub async fn get_product_ids_in_favorites(&self, favorites_id: i32) -> Vec<i32> {
+        let mut condition = Condition::any();
+        condition = condition
+            .add(FavoriteProductColumn::FavoriteId.eq(favorites_id));
+        FavoriteProductEntity::find()
+            .filter(condition)
+            .select_only()
+            .column(FavoriteProductColumn::ProductId)
+            .into_tuple::<i32>()
+            .all(&*self.connection)
+            .await
+            .unwrap()
     }
 
 }

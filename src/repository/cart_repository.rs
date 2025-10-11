@@ -1,13 +1,12 @@
-use sea_orm::{Set, DatabaseConnection, ActiveModelTrait, Condition, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{Set, DatabaseConnection, ActiveModelTrait, Condition, ColumnTrait, EntityTrait, QueryFilter, QuerySelect};
 use std::sync::Arc;
 use crate::db::entities::cart::{ActiveModel, Model as CartModel, Entity as CartEntity, Column as CartColumn};
 use crate::db::entities::cart_product::{Model as CartProductModel, Entity as CartProductEntity, Column as CartProductColumn, ActiveModel as CartProductActiveModel};
-use crate::db::entities::product::{Model as ProductModel, Entity as ProductEntity, Column as ProductColumn};
 
 use anyhow::Result;
 use chrono::Utc;
-use crate::DTO::cart_product_dto::CartProductWithRelations;
 
+#[derive(Clone)]
 pub struct DBCartRepository {
     connection: Arc<DatabaseConnection>,
 }
@@ -95,20 +94,18 @@ impl DBCartRepository {
         Ok(products)
     }
 
-    pub async fn get_product_item_by_cart(&self, cart_product: CartProductModel) -> Result<CartProductWithRelations> {
+    pub async fn get_product_ids_in_cart(&self, cart_id: i32) -> Vec<i32> {
         let mut condition = Condition::all();
-        condition = condition.add(ProductColumn::Id.eq(cart_product.product_id));
+        condition = condition
+            .add(CartProductColumn::CartId.eq(cart_id));
 
-        let product = ProductEntity::find()
+        CartProductEntity::find()
             .filter(condition)
-            .one(&*self.connection)
-            .await?
-            .unwrap();
-        Ok(CartProductWithRelations {
-            product,
-            quantity: Some(cart_product.quantity),
-            size: Some(cart_product.size),
-            color: Some(cart_product.color)
-        })
+            .select_only()
+            .column(CartProductColumn::ProductId)
+            .into_tuple::<i32>()
+            .all(&*self.connection)
+            .await
+            .unwrap()
     }
 }

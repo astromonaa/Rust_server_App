@@ -7,9 +7,11 @@ use serde::Serialize;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
     pub id: i32,
+
     #[sea_orm(column_type = "Text", unique)]
     pub name: String,
-    #[sea_orm(column_type = "Integer", belongs_to = "super::category::Entity", column_name = "CategoryId")]
+
+    #[sea_orm(column_type = "Integer", column_name = "CategoryId")]
     pub category_id: i32,
 
     #[sea_orm(default_expr = "Expr::current_timestamp()")]

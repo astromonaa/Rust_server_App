@@ -7,3 +7,6 @@ pub mod sub_category;
 pub mod token;
 pub mod favorite;
 pub mod favorite_product;
+pub mod order;
+pub mod order_item;
+pub mod payment;

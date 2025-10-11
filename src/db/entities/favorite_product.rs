@@ -7,9 +7,9 @@ use serde::Serialize;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
     pub id: i32,
-    #[sea_orm(column_type = "Integer", belongs_to = "super::favorite::Entity", column_name = "FavoriteId")]
+    #[sea_orm(column_type = "Integer", column_name = "FavoriteId")]
     pub favorite_id: i32,
-    #[sea_orm(column_type = "Integer", belongs_to = "super::product::Entity", column_name = "ProductId")]
+    #[sea_orm(column_type = "Integer", column_name = "ProductId")]
     pub product_id: i32,
 
     #[sea_orm(default_expr = "Expr::current_timestamp()")]

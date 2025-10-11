@@ -5,3 +5,7 @@ pub mod tokens_service;
 pub mod cart_service;
 pub mod favorites_service;
 pub mod mail_service;
+pub mod payment_service;
+pub mod order_service;
+pub mod cart_and_product_service;
+pub mod fav_and_product_service;

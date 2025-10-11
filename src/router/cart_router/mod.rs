@@ -5,11 +5,18 @@ use axum::routing::{post, get};
 use sea_orm::DatabaseConnection;
 use crate::controllers::cart_controller::CartController;
 use crate::middleware::get_user::get_user_middleware;
-use crate::router::build_cart_service;
+use crate::router::{build_cart_service, build_product_service};
 use crate::router::helpers::cart_router_helper;
+use crate::services::cart_and_product_service::CartAndProductService;
+use crate::services::cart_service::CartService;
+
+fn build_cart_and_product_service(connection: &Arc<DatabaseConnection>, cart_service: CartService) -> CartAndProductService {
+    CartAndProductService::new(cart_service, build_product_service(connection))
+}
 
 fn build_controller(connection: &Arc<DatabaseConnection>) -> Arc<CartController> {
-    Arc::new(CartController::new(build_cart_service(connection)))
+    let cart_service = build_cart_service(connection);
+    Arc::new(CartController::new(cart_service.clone(), build_cart_and_product_service(connection, cart_service)))
 }
 
 pub fn setup_router(connection: DatabaseConnection) -> anyhow::Result<Router> {

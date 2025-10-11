@@ -1,13 +1,13 @@
+use std::collections::HashMap;
 use crate::repository::cart_repository::DBCartRepository;
 use crate::db::entities::cart::{ Model as CartModel};
 use anyhow::Result;
-use futures::future::join_all;
 use crate::services::tokens_service::types::UserClaims;
 use crate::db::entities::cart_product::{Model as CartProductModel};
-use crate::DTO::cart_product_dto::{CartProductWithRelations, CartProductsWithTotals};
 
+#[derive(Clone)]
 pub struct CartService {
-    repository: DBCartRepository
+    repository: DBCartRepository,
 }
 
 impl CartService {
@@ -15,6 +15,10 @@ impl CartService {
         Self {
             repository,
         }
+    }
+
+    pub async fn get_user_cart(&self, user_id: i32) -> Result<CartModel> {
+        Ok(self.repository.get_cart(user_id).await?.unwrap())
     }
 
     pub async fn create_cart(&self, user_id: i32) -> Result<CartModel> {
@@ -41,18 +45,13 @@ impl CartService {
         Ok(cart_product.unwrap())
     }
 
-    pub async fn get_cart(&self, user: Option<UserClaims>) -> Result<CartProductsWithTotals> {
-        let user_cart = self.repository.get_cart(user.unwrap().id).await?.unwrap();
+    pub async fn get_user_cart_products(&self, cart_id: i32) -> Result<Vec<CartProductModel>> {
+        Ok(self.repository.get_user_cart_products(cart_id).await?)
+    }
 
-        let cart_products_future = self.repository.get_user_cart_products(user_cart.id)
-            .await?
-            .into_iter()
-            .map(|item| self.repository.get_product_item_by_cart(item));
 
-        let results = join_all(cart_products_future).await;
-        let results = results.into_iter().collect::<Result<Vec<_>>>()?;
-        let total_price: f64 = results.iter().fold(0.0, |acc, val| acc + val.product.price);
-
-        Ok(CartProductsWithTotals { products: results, total_price })
+    pub async fn get_product_ids_in_cart(&self, user_id: i32) -> Vec<i32> {
+        let cart = self.repository.get_cart(user_id).await.unwrap();
+        self.repository.get_product_ids_in_cart(cart.unwrap().id).await
     }
 }

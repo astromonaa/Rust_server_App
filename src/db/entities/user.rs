@@ -34,10 +34,15 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_one = "super::cart::Entity")]
     Cart,
+
     #[sea_orm(has_one = "super::favorite::Entity")]
     Favorite,
+
     #[sea_orm(has_one = "super::token::Entity")]
     Token,
+
+    #[sea_orm(has_many = "super::order::Entity")]
+    Order,
 }
 
 
@@ -59,6 +64,10 @@ impl Related<super::token::Entity> for Entity {
     }
 }
 
-
+impl Related<super::order::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Order.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}

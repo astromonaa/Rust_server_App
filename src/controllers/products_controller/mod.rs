@@ -29,7 +29,7 @@ impl ProductsController {
     }
 
     pub async fn get_product_item(&self, product_id: i32, user: UserClaims) ->  Result<Json<ProductWithRelations>, (StatusCode, String)> {
-        let product = self.service.get_product_item(product_id, user)
+        let product = self.service.get_product_item(product_id, Some(user))
             .await
             .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
