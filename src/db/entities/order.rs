@@ -34,7 +34,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
     pub id: i32,
 
-    #[sea_orm(column_type = "Integer", belongs_to = "super::user::Entity", column_name = "UserId")]
+    #[sea_orm(column_name = "UserId")]
     pub user_id: i32,
 
     #[sea_orm(column_type = "Text")]

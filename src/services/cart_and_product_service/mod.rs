@@ -22,7 +22,7 @@ impl CartAndProductService {
     pub async fn get_cart(&self, user: Option<UserClaims>) -> anyhow::Result<CartProductsWithTotals> {
         let user_cart = self.cart_service.get_user_cart(user.unwrap().id).await?;
 
-        let cart_products = self.cart_service.get_user_cart_products(user_cart.id).await?;
+        let cart_products = self.cart_service.get_user_cart_products(user_cart.unwrap().id).await?;
         let products_ids = cart_products.iter().map(|p| p.product_id).collect();
         let products = self.products_service.get_products_by_ids(products_ids).await;
 

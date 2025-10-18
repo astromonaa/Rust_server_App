@@ -16,7 +16,7 @@ impl GlobalConfiguration {
         let _ = dotenvy::dotenv();
 
         let settings_reader = Config::builder()
-            .add_source(config::Environment::default()) // 🔥 без префикса!
+            .add_source(config::Environment::default()) // без префикса!
             .build()?;
 
         let settings = settings_reader.try_deserialize()?;

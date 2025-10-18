@@ -1,10 +1,12 @@
 use axum::http::StatusCode;
 use axum::Json;
+use sea_orm::DeleteResult;
 use crate::services::cart_service::CartService;
 use crate::services::tokens_service::types::UserClaims;
 use crate::db::entities::cart_product::{Model as CartProductModel};
 use crate::DTO::cart_product_dto::{CartProductsWithTotals};
 use crate::services::cart_and_product_service::CartAndProductService;
+use crate::services::cart_service::types::CartResult;
 
 pub struct CartController {
     service: CartService,
@@ -36,5 +38,17 @@ impl CartController {
             .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
         Ok(Json(cart_products))
+    }
+
+    pub async fn delete_from_cart(&self, product_id: i32, user: Option<UserClaims>) -> Result<Json<CartResult>, (StatusCode, String)> {
+        if user.is_none() {
+            return Err((StatusCode::BAD_REQUEST, "User does not exist".to_string()));
+        };
+
+        let deleted = self.service.delete_from_cart(product_id, user.unwrap().id)
+            .await
+            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+
+        Ok(Json(deleted))
     }
 }

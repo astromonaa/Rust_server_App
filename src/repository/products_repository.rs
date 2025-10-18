@@ -19,10 +19,13 @@ impl DbProductsRepository {
         let products = ProductEntity::find().all(&*self.connection).await?;
         Ok(products)
     }
-    pub async fn get_product_item(&self, product_id: i32) -> anyhow::Result<ProductWithRelations> {
-        let product = ProductEntity::find_by_id(product_id)
+    pub async fn get_product_item(&self, product_id: i32) -> anyhow::Result<Option<ProductWithRelations>> {
+        let Some(product) = ProductEntity::find_by_id(product_id)
             .one(&*self.connection)
-            .await?.unwrap();
+            .await?
+            else {
+                return Ok(None)
+            };
 
         let category = product.find_related(CategoryEntity)
             .one(&*self.connection)
@@ -33,19 +36,21 @@ impl DbProductsRepository {
             .one(&*self.connection)
             .await?.unwrap();
 
-        Ok(ProductWithRelations { product, Category: Some(category), SubCategory: Some(sub_category), isInCart: None, favorite: None })
+        Ok(Some(ProductWithRelations { product, Category: Some(category), SubCategory: Some(sub_category), isInCart: None, favorite: None }))
     }
 
-    pub async fn calculate_products_total_price(&self, items: &Vec<OrderItemData>) -> f64 {
+    pub async fn calculate_products_total_price(&self, items: &Vec<OrderItemData>) -> (f64, Vec<f64>) {
         let mut total = 0.0;
+        let mut prices = Vec::new();
 
-        for OrderItemData { product_id, quantity } in items {
+        for OrderItemData { product_id, quantity, size: _size, color: _color } in items {
             if let Ok(Some(product)) = ProductEntity::find_by_id(*product_id).one(&*self.connection).await {
                 total += product.price * *quantity as f64;
+                prices.push(product.price);
             }
         }
 
-        total
+        (total, prices)
     }
 
     pub async fn get_products_by_ids(&self, ids: Vec<i32>) -> Vec<ProductModel> {

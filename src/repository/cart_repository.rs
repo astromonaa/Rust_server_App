@@ -1,4 +1,4 @@
-use sea_orm::{Set, DatabaseConnection, ActiveModelTrait, Condition, ColumnTrait, EntityTrait, QueryFilter, QuerySelect};
+use sea_orm::{Set, DatabaseConnection, ActiveModelTrait, Condition, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, DeleteResult};
 use std::sync::Arc;
 use crate::db::entities::cart::{ActiveModel, Model as CartModel, Entity as CartEntity, Column as CartColumn};
 use crate::db::entities::cart_product::{Model as CartProductModel, Entity as CartProductEntity, Column as CartProductColumn, ActiveModel as CartProductActiveModel};
@@ -74,10 +74,18 @@ impl DBCartRepository {
         Ok(Some(saved_product))
     }
 
-    pub async fn increase_quantity(&self, cart_product: CartProductModel) -> Result<Option<CartProductModel>> {
+    pub async fn delete_from_cart(&self, cart_product_id: i32) -> Result<DeleteResult> {
+        let deleted = CartProductEntity::delete_by_id(cart_product_id)
+            .exec(&*self.connection)
+            .await?;
+
+        Ok(deleted)
+    }
+
+    pub async fn change_quantity(&self, cart_product: CartProductModel, quantity: i32) -> Result<Option<CartProductModel>> {
         let mut active: CartProductActiveModel = cart_product.into();
 
-        active.quantity = Set(active.quantity.unwrap() + 1);
+        active.quantity = Set(quantity);
 
         let updated = active.update(&*self.connection)
             .await?;

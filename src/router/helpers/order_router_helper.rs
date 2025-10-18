@@ -1,5 +1,6 @@
+use std::net::SocketAddr;
 use std::sync::Arc;
-use axum::extract::{State, Path};
+use axum::extract::{State, Path, ConnectInfo};
 use axum::{Extension, Json, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 use crate::controllers::order_controller::OrderController;
@@ -15,15 +16,40 @@ pub struct OrderData {
     pub currency: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Metadata {
+    #[serde(rename = "orderId")]
+    pub order_id: String,
+    #[serde(rename = "userId")]
+    pub user_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Amount {
+    pub value: String,
+    pub currency: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NotificationObject {
+    pub id: String,
+    pub status: String,
+    pub amount: Amount,
+    pub metadata: Metadata,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct OrderNotificationData {
+    pub event: String,
+    pub object: NotificationObject,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct OrderItemData {
     pub product_id: i32,
     pub quantity: i32,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct OrderStatusUpdate {
-    pub status: String,
+    pub size: i32,
+    pub color: String,
 }
 
 pub async fn create_order(
@@ -32,6 +58,14 @@ pub async fn create_order(
     Json(body): Json<OrderData>
 ) -> impl IntoResponse {
     order_controller.create_order(body, user).await
+}
+
+pub async fn update_order_status(
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    State(order_controller): State<Arc<OrderController>>,
+    Json(body): Json<OrderNotificationData>,
+) -> impl IntoResponse {
+    order_controller.update_order_status(body, peer).await
 }
 
 pub async fn get_orders(
@@ -47,13 +81,4 @@ pub async fn get_order_by_id(
     Path(order_id): Path<i32>
 ) -> impl IntoResponse {
     order_controller.get_order_by_id(order_id, user).await
-}
-
-pub async fn update_order_status(
-    State(order_controller): State<Arc<OrderController>>,
-    Extension(user): Extension<Option<UserClaims>>,
-    Path(order_id): Path<i32>,
-    Json(body): Json<OrderStatusUpdate>
-) -> impl IntoResponse {
-    order_controller.update_order_status(order_id, body.status, user).await
 }

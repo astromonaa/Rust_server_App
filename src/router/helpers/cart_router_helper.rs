@@ -18,9 +18,17 @@ pub async fn add_to_cart(
     State(cart_controller): State<Arc<CartController>>,
     Path(product_id): Path<i32>,
     Extension(user): Extension<Option<UserClaims>>,
-    Json(payload): Json<AddToCartPayload>
+    Json(payload): Json<AddToCartPayload>,
 ) -> impl IntoResponse {
     cart_controller.add_to_cart(user, product_id, payload.color, payload.size).await
+}
+
+pub async fn delete_from_cart(
+    State(cart_controller): State<Arc<CartController>>,
+    Path(product_id): Path<i32>,
+    Extension(user): Extension<Option<UserClaims>>,
+) -> impl IntoResponse {
+    cart_controller.delete_from_cart(product_id, user).await
 }
 
 pub async fn get_cart(

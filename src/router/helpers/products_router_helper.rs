@@ -16,5 +16,5 @@ pub async fn get_product_item(
     Path(product_id): Path<i32>,
     Extension(user): Extension<Option<UserClaims>>
 ) -> impl IntoResponse {
-    products_controller.get_product_item(product_id, user.unwrap()).await
+    products_controller.get_product_item(product_id, user).await
 }

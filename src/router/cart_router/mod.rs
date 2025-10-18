@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use axum::middleware::from_fn;
 use axum::Router;
-use axum::routing::{post, get};
+use axum::routing::{post, get, delete};
 use sea_orm::DatabaseConnection;
 use crate::controllers::cart_controller::CartController;
 use crate::middleware::get_user::get_user_middleware;
@@ -26,6 +26,7 @@ pub fn setup_router(connection: DatabaseConnection) -> anyhow::Result<Router> {
     let router = Router::new()
         .route("/", get(cart_router_helper::get_cart).route_layer(from_fn(get_user_middleware)))
         .route("/:product_id", post(cart_router_helper::add_to_cart).route_layer(from_fn(get_user_middleware)))
+        .route("/:product_id", delete(cart_router_helper::delete_from_cart).route_layer(from_fn(get_user_middleware)))
         .with_state(build_controller(&connection));
 
     Ok(router)

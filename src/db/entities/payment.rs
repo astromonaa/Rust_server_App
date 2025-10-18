@@ -20,7 +20,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
     pub id: i32,
 
-    #[sea_orm(column_name = "order_id")]
+    #[sea_orm(column_name = "OrderId")]
     pub order_id: i32,
 
     #[sea_orm(column_type = "Text")]
@@ -39,7 +39,7 @@ pub struct Model {
     pub status: PaymentStatus,
 
     #[sea_orm(column_type = "Text")]
-    pub raw_response: String,
+    pub raw_response: Option<String>,
 
     #[sea_orm(default_expr = "Expr::current_timestamp()")]
     pub created_at: chrono::DateTime<Utc>,

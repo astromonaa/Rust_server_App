@@ -8,14 +8,20 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
     pub id: i32,
 
-    #[sea_orm(column_name = "order_id")]
+    #[sea_orm(column_name = "OrderId")]
     pub order_id: i32,
 
-    #[sea_orm(column_name = "product_id")]
+    #[sea_orm(column_name = "ProductId")]
     pub product_id: i32,
 
     #[sea_orm(column_type = "Integer")]
     pub quantity: i32,
+
+    #[sea_orm(column_type = "Text")]
+    pub color: String,
+
+    #[sea_orm(column_type = "Integer")]
+    pub size: i32,
 
     #[sea_orm(column_type = "Float")]
     pub price: f64,

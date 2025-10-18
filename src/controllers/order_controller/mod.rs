@@ -1,8 +1,13 @@
+mod order_status_strategies;
+
+use std::net::SocketAddr;
 use axum::http::StatusCode;
 use axum::Json;
 use serde::Serialize;
-use crate::router::helpers::order_router_helper::OrderData;
+use crate::controllers::order_controller::order_status_strategies::PaymentStrategyRegistry;
+use crate::router::helpers::order_router_helper::{OrderData, OrderNotificationData};
 use crate::services::order_service::OrderService;
+use crate::services::order_service::types::OrderWithRelations;
 use crate::services::tokens_service::types::UserClaims;
 
 pub struct OrderController {
@@ -12,7 +17,7 @@ pub struct OrderController {
 #[derive(Serialize)]
 pub struct OrderResponse {
     pub message: String,
-    pub order_id: Option<i32>,
+    pub confirmation_url: Option<String>,
 }
 
 impl OrderController {
@@ -27,44 +32,43 @@ impl OrderController {
             return Err((StatusCode::BAD_REQUEST, "User does not exist".to_string()));
         }
 
-        let order = self.service.create_order(user.unwrap().id, _body).await;
+        let confirmation_url = self.service.create_order(user.unwrap().id, _body).await.unwrap();
 
         Ok(Json(OrderResponse {
             message: "Order created successfully".to_string(),
-            order_id: Some(1), // Placeholder
+            confirmation_url
         }))
     }
 
-    pub async fn get_orders(&self, user: Option<UserClaims>) -> Result<Json<OrderResponse>, (StatusCode, String)> {
+    pub async fn get_orders(&self, user: Option<UserClaims>) -> Result<Json<Vec<OrderWithRelations>>, (StatusCode, String)> {
         if user.is_none() {
             return Err((StatusCode::BAD_REQUEST, "User does not exist".to_string()));
         }
 
-        Ok(Json(OrderResponse {
-            message: "Orders retrieved successfully".to_string(),
-            order_id: None,
-        }))
+        let orders = self.service.get_user_orders(user.unwrap().id)
+            .await
+            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string()))?;
+
+        Ok(Json(orders))
     }
 
-    pub async fn get_order_by_id(&self, order_id: i32, user: Option<UserClaims>) -> Result<Json<OrderResponse>, (StatusCode, String)> {
+    pub async fn get_order_by_id(&self, _order_id: i32, user: Option<UserClaims>) -> Result<Json<()>, (StatusCode, String)> {
         if user.is_none() {
             return Err((StatusCode::BAD_REQUEST, "User does not exist".to_string()));
         }
 
-        Ok(Json(OrderResponse {
-            message: format!("Order {} retrieved successfully", order_id),
-            order_id: Some(order_id),
-        }))
+        Ok(Json(()))
     }
 
-    pub async fn update_order_status(&self, order_id: i32, status: String, user: Option<UserClaims>) -> Result<Json<OrderResponse>, (StatusCode, String)> {
-        if user.is_none() {
-            return Err((StatusCode::BAD_REQUEST, "User does not exist".to_string()));
-        }
+    pub async fn update_order_status(&self, body: OrderNotificationData, peer: SocketAddr) -> Result<Json<()>, (StatusCode, String)> {
 
-        Ok(Json(OrderResponse {
-            message: format!("Order {} status updated to {}", order_id, status),
-            order_id: Some(order_id),
-        }))
+        let strategy_registry = PaymentStrategyRegistry::new(&self.service);
+        let strategy = strategy_registry.get_strategy(&body.event);
+
+        strategy.process(body, peer.ip())
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        Ok(Json(()))
     }
 }

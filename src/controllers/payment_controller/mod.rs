@@ -14,7 +14,7 @@ impl PaymentController {
         }
     }
 
-    pub async fn make_payment(&self, body: PaymentData, user: Option<UserClaims>) -> Result<String, (StatusCode, String)> {
+    pub async fn make_payment(&self, _body: PaymentData, _user: Option<UserClaims>) -> Result<String, (StatusCode, String)> {
         // if user.is_none() {
         //     return Err((StatusCode::BAD_REQUEST, "User does not exist".to_string()));
         // }

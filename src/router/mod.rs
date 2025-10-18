@@ -18,11 +18,14 @@ use crate::repository::products_repository::DbProductsRepository;
 use crate::services::cart_service::CartService;
 use crate::services::favorites_service::FavoritesService;
 use crate::services::products_service::ProductsService;
+use migration::{Migrator, MigratorTrait};
 
 pub async fn setup_router() -> Result<Router> {
     // Подключение к базе данных
     let settings = auth_configuration::AuthConfiguration::load()?;
     let connection = db::get_connection_pool(settings).await;
+
+    Migrator::up(&connection, None).await?;
 
     let router = Router::new()
         .nest("/products", products_router::setup_router(connection.clone())?)

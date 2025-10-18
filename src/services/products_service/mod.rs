@@ -59,8 +59,8 @@ impl ProductsService {
         Ok(results)
     }
 
-    pub async fn get_product_item(&self, product_id: i32, user: Option<UserClaims>) -> anyhow::Result<ProductWithRelations> {
-        let product = self.repository.get_product_item(product_id).await?;
+    pub async fn get_product_item(&self, product_id: i32, user: Option<UserClaims>) -> anyhow::Result<Option<ProductWithRelations>> {
+        let Some(product) = self.repository.get_product_item(product_id).await? else { return Ok(None) };
 
         let (is_in_cart, is_in_favorites) = if let Some(ref user) = user {
             let in_cart = self.cart.is_in_cart(user.id, product.product.id).await?;
@@ -70,10 +70,10 @@ impl ProductsService {
             (false, false)
         };
 
-        Ok(ProductWithRelations { isInCart: Some(is_in_cart), favorite: Some(is_in_favorites), ..product })
+        Ok(Some(ProductWithRelations { isInCart: Some(is_in_cart), favorite: Some(is_in_favorites), ..product }))
     }
 
-    pub async fn calculate_products_total_price(&self, items: &Vec<OrderItemData>) -> f64 {
+    pub async fn calculate_products_total_price(&self, items: &Vec<OrderItemData>) -> (f64, Vec<f64>) {
         self.repository.calculate_products_total_price(items).await
     }
 

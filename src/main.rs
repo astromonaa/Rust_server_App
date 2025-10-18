@@ -9,9 +9,11 @@ mod DTO;
 
 mod utils;
 mod middleware;
+mod payment_clients;
 
 use axum::{ Router};
 use anyhow::Result;
+use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -27,7 +29,7 @@ async fn main() -> Result<()> {
 
     let listener = tokio::net::TcpListener::bind("localhost:5000").await?;
     println!("Listening http://localhost:5000");
-    axum::serve(listener, app.into_make_service()).await?;
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await?;
 
     Ok(())
 }

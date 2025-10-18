@@ -1,6 +1,5 @@
 use chrono::Utc;
 use sea_orm::entity::prelude::*;
-use sea_orm::JsonValue;
 use serde::Serialize;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize)]

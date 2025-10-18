@@ -7,14 +7,19 @@ use serde::Serialize;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
     pub id: i32,
+
     #[sea_orm(column_type = "Integer")]
     pub quantity: i32,
+
     #[sea_orm(column_type = "Text")]
     pub color: String,
+
     #[sea_orm(column_type = "Integer")]
     pub size: i32,
+
     #[sea_orm(column_type = "Integer", column_name = "CartId")]
     pub cart_id: i32,  // Внешний ключ на Cart
+
     #[sea_orm(column_type = "Integer", column_name = "ProductId")]
     pub product_id: i32, // Внешний ключ на Product
 
