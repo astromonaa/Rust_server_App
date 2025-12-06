@@ -24,6 +24,77 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        // ---------- Anonymous Users ----------
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("AnonymousUsers"))
+                    .if_not_exists()
+                    .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
+                    .col(ColumnDef::new(Alias::new("deviceFingerprint")).string().not_null().unique_key())
+                    .col(ColumnDef::new(Alias::new("userAgent")).text())
+                    .col(ColumnDef::new(Alias::new("ipAddress")).inet())
+                    .col(ColumnDef::new(Alias::new("createdAt")).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(ColumnDef::new(Alias::new("updatedAt")).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .to_owned(),
+            )
+            .await?;
+
+        // ------------------- Chats ------------------------
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("Chats"))
+                    .if_not_exists()
+                    .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
+                    .col(ColumnDef::new(Alias::new("created_at")).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(ColumnDef::new(Alias::new("isAnonymous")).boolean().not_null())
+                    .col(ColumnDef::new(Alias::new("UserId")).integer())
+                    .col(ColumnDef::new(Alias::new("anonymousUserId")).integer().not_null())
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_chat_user")
+                            .from(Alias::new("Chats"), Alias::new("UserId"))
+                            .to(Alias::new("Users"), Alias::new("id"))
+                            .on_delete(ForeignKeyAction::Cascade)
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_chat_anonymous")
+                            .from(Alias::new("Chats"), Alias::new("anonymousUserId"))
+                            .to(Alias::new("AnonymousUsers"), Alias::new("id"))
+                            .on_delete(ForeignKeyAction::Cascade)
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+
+        /* Messages */
+        manager
+            .create_table(
+                Table::create()
+                    .table(Alias::new("Messages"))
+                    .if_not_exists()
+                    .col(ColumnDef::new(Alias::new("id")).integer().not_null().auto_increment().primary_key())
+                    .col(ColumnDef::new(Alias::new("chat_id")).integer().not_null())
+                    .col(ColumnDef::new(Alias::new("content")).text().not_null())
+                    .col(ColumnDef::new(Alias::new("created_at")).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+                    .col(ColumnDef::new(Alias::new("is_from_user")).boolean().not_null())
+                    .col(ColumnDef::new(Alias::new("is_read")).boolean().not_null().default(false))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_message_chat")
+                            .from(Alias::new("Messages"), Alias::new("chat_id"))
+                            .to(Alias::new("Chats"), Alias::new("id"))
+                            .on_delete(ForeignKeyAction::Cascade)
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
         // ---------- Orders ----------
         manager
             .create_table(

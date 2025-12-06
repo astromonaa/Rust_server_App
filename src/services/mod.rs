@@ -9,3 +9,4 @@ pub mod payment_service;
 pub mod order_service;
 pub mod cart_and_product_service;
 pub mod fav_and_product_service;
+pub mod chat_service;

@@ -10,6 +10,7 @@ mod DTO;
 mod utils;
 mod middleware;
 mod payment_clients;
+mod websocket;
 
 use axum::{ Router};
 use anyhow::Result;
@@ -19,11 +20,13 @@ use std::net::SocketAddr;
 async fn main() -> Result<()> {
 
     let router_module = router::setup_router().await?;
+    let ws_module = websocket::setup_ws_module().await?;
 
     let cors = configuration::cors_config::build_cors();
 
     let app = Router::new()
         .nest("/api", router_module)
+        .nest("/ws", ws_module)
         .nest_service("/", static_service::serve_static())
         .layer(cors);
 

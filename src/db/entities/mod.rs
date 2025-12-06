@@ -10,3 +10,6 @@ pub mod favorite_product;
 pub mod order;
 pub mod order_item;
 pub mod payment;
+pub mod anonymous_user;
+pub mod chat;
+pub mod message;
