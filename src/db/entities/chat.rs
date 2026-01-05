@@ -11,14 +11,17 @@ pub struct Model {
     #[sea_orm(default_expr = "Expr::current_timestamp()")]
     pub created_at: chrono::DateTime<Utc>,
 
+    #[sea_orm(default_expr = "Expr::current_timestamp()")]
+    pub updated_at: chrono::DateTime<Utc>,
+
     #[sea_orm(column_type = "Boolean")]
     pub is_anonymous: bool,
 
     #[sea_orm(column_name = "UserId", nullable)]
     pub user_id: Option<i32>,
 
-    #[sea_orm(column_name = "anonymousUserId")]
-    pub anonymous_user_id: i32,
+    #[sea_orm(column_name = "anonymousUserId", nullable)]
+    pub anonymous_user_id: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

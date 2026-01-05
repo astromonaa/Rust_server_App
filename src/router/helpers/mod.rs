@@ -4,3 +4,4 @@ pub mod favorites_router_helper;
 pub mod cart_router_helper;
 pub mod payment_router_helper;
 pub mod order_router_helper;
+pub mod chats_router_helper;

@@ -25,7 +25,7 @@ fn build_user_service(connection: &Arc<DatabaseConnection>) -> UserService {
     user_service
 }
 
-fn build_controller(connection: &Arc<DatabaseConnection>) -> Arc<UserController> {
+pub fn build_user_controller(connection: &Arc<DatabaseConnection>) -> Arc<UserController> {
     Arc::new(UserController::new(build_user_service(connection)))
 }
 
@@ -41,7 +41,7 @@ pub fn setup_router(connection: DatabaseConnection) -> Result<Router> {
         .route("/login", post(user_router_helper::login))
         .route("/auth", get(user_router_helper::auth))
         .route("/logout", post(user_router_helper::logout))
-        .with_state(build_controller(&connection))
+        .with_state(build_user_controller(&connection))
         .layer(CookieManagerLayer::new())
         .layer(Extension(cookies));
 

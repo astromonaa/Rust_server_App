@@ -15,12 +15,18 @@ mod websocket;
 use axum::{ Router};
 use anyhow::Result;
 use std::net::SocketAddr;
+use crate::configuration::auth_configuration;
+use migration::{Migrator, MigratorTrait};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let settings = auth_configuration::AuthConfiguration::load()?;
+    let connection = db::get_connection_pool(settings).await;
 
-    let router_module = router::setup_router().await?;
-    let ws_module = websocket::setup_ws_module().await?;
+    Migrator::up(&connection, None).await?;
+
+    let router_module = router::setup_router(connection.clone()).await?;
+    let ws_module = websocket::setup_ws_module(connection.clone()).await?;
 
     let cors = configuration::cors_config::build_cors();
 

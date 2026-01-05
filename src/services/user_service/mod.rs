@@ -1,6 +1,7 @@
 pub mod types;
 
 use crate::db::entities::user::Model;
+use crate::db::entities::anonymous_user::{Model as AnonymousUserModel };
 use crate::repository::user_repository::{DbUserRepository, UserFilter};
 use crate::router::helpers::user_router_helper::RegistrationData;
 use crate::DTO::user_dto::UserDto;
@@ -8,10 +9,11 @@ use crate::services::tokens_service::TokenService;
 use bcrypt::{hash, DEFAULT_COST, verify};
 use crate::services::cart_service::CartService;
 use crate::services::favorites_service::FavoritesService;
-use crate::services::user_service::types::{AuthErrors, CreatedUser, RegistrationErrors};
+use crate::services::user_service::types::{AuthErrors, CreateAnonymousUser, CreatedUser, RegistrationErrors};
 use uuid::Uuid;
 use crate::services::mail_service::MailService;
 use crate::services::tokens_service::types::TokenErrors;
+use crate::websocket::ws_helpers::BrowserInfo;
 
 pub struct UserService {
     repository: DbUserRepository,
@@ -149,5 +151,21 @@ impl UserService {
 
     pub async fn logout(&self, refresh_token: String) -> Result<String, TokenErrors> {
         TokenService::remove_token(&refresh_token, &self.repository.connection).await
+    }
+
+    pub async fn create_or_get_anonymous_user(&self, user_data: BrowserInfo) -> Result<AnonymousUserModel, AuthErrors> {
+        let candidate = self.repository.get_anonymous_user(&user_data)
+        .await
+        .map_err(|_| AuthErrors::Unauthorized)?;
+
+        if candidate.is_some() {
+            return Ok(candidate.unwrap());
+        }
+
+        let user = self.repository.create_anonymous_user(user_data)
+        .await
+        .map_err(|e| AuthErrors::CreateAnonymousUserError(e.to_string()))?;
+
+        Ok(user)
     }
 }

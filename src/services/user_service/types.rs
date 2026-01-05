@@ -40,6 +40,7 @@ pub enum AuthErrors {
     DataNotValid,
     PassCompareError,
     InvalidPassword,
+    CreateAnonymousUserError(String)
 }
 
 impl fmt::Display for AuthErrors {
@@ -49,6 +50,7 @@ impl fmt::Display for AuthErrors {
             AuthErrors::DataNotValid => write!(f, "Data not valid"),
             AuthErrors::PassCompareError => write!(f, "Pass compare error"),
             AuthErrors::InvalidPassword => write!(f, "Invalid password"),
+            AuthErrors::CreateAnonymousUserError(e) => write!(f, "Error when creating anonymous user: {}", e),
         }
     }
 }
@@ -60,6 +62,7 @@ impl IntoResponse for AuthErrors {
             AuthErrors::DataNotValid => (StatusCode::BAD_REQUEST, "Invalid token").into_response(),
             AuthErrors::PassCompareError => (StatusCode::INTERNAL_SERVER_ERROR, "DB error").into_response(),
             AuthErrors::InvalidPassword => (StatusCode::INTERNAL_SERVER_ERROR, "DB error").into_response(),
+            AuthErrors::CreateAnonymousUserError(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
         }
     }
 }
@@ -73,4 +76,12 @@ pub struct CreatedUser {
     pub access_token: String,
     pub refresh_token: String,
     pub activation_link: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CreateAnonymousUser {
+    pub id: i32,
+    pub device_fingerprint: String,
+    pub user_agent: Option<String>,
+    pub ip_address: Option<String>,
 }

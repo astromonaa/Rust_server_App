@@ -2,9 +2,11 @@ use axum::{http::StatusCode, response::{Json, Redirect}};
 use tower_cookies::{Cookie};
 
 use crate::db::entities::user::Model;
+use crate::db::entities::anonymous_user::{Model as AnonymousUserModel };
 use crate::services::user_service::UserService;
 use crate::router::helpers::user_router_helper::RegistrationData;
 use crate::services::user_service::types::{CreatedUser};
+use crate::websocket::ws_helpers::BrowserInfo;
 
 pub struct UserController {
     service: UserService,
@@ -39,7 +41,7 @@ impl UserController {
     pub async fn login(&self, body: RegistrationData) -> Result<Json<CreatedUser>, (StatusCode, String)> {
         let user = self.service.login(body)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
         Ok(Json(user))
     }
@@ -61,5 +63,13 @@ impl UserController {
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
         Ok(Json(deleted_token))
+    }
+
+    pub async fn create_or_get_anonymous_user(&self, user_data: BrowserInfo) -> Result<Json<AnonymousUserModel>, (StatusCode, String)> {
+        let user = self.service.create_or_get_anonymous_user(user_data)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        Ok(Json(user))
     }
 }

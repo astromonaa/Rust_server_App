@@ -1,11 +1,16 @@
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait,
-    QueryFilter, Set,
-    DbErr
+use crate::db::entities::anonymous_user::{
+    ActiveModel as AnonymousUserActiveModel, Model as AnonymousUserModel,
+    Entity as AnonymousUserEntity,
+    Column as AnonymousUserColumn
 };
 use crate::db::entities::user::{ActiveModel, Column, Entity, Model};
+use crate::websocket::ws_helpers::BrowserInfo;
 use anyhow::Result;
 use chrono::Utc;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
+    Set,
+};
 use std::sync::Arc;
 
 pub struct DbUserRepository {
@@ -35,7 +40,9 @@ impl DbUserRepository {
         let mut condition = Condition::all();
 
         if filter.id.is_none() && filter.email.is_none() && filter.activation_link.is_none() {
-            return Err(DbErr::Custom("At least one filter parameter must be provided".into()))?;
+            return Err(DbErr::Custom(
+                "At least one filter parameter must be provided".into(),
+            ))?;
         }
 
         if let Some(id) = filter.id {
@@ -58,8 +65,12 @@ impl DbUserRepository {
         Ok(user)
     }
 
-    pub async fn create_user(&self, email: String, password: String, activation_link: String) -> Result<Model> {
-
+    pub async fn create_user(
+        &self,
+        email: String,
+        password: String,
+        activation_link: String,
+    ) -> Result<Model> {
         // Используем Set для обёртки значений в ActiveValue
         let new_user = ActiveModel {
             email: Set(email),
@@ -82,7 +93,6 @@ impl DbUserRepository {
             return Err(DbErr::RecordNotFound("User not found".into()))?;
         };
 
-
         let mut active: ActiveModel = user.into();
 
         if let Some(email) = data.email {
@@ -104,6 +114,34 @@ impl DbUserRepository {
         let updated = active.update(&*self.connection).await?;
 
         Ok(updated)
+    }
+    pub async fn get_anonymous_user(&self, user_data: &BrowserInfo) -> Result<Option<AnonymousUserModel>> {
+        let anonymous_user = AnonymousUserEntity::find()
+            .filter(Condition::all().add(AnonymousUserColumn::DeviceFingerprint.eq(user_data.device_fingerprint.clone())))
+            .one(&*self.connection)
+            .await?;
 
+        Ok(anonymous_user)
+    }
+
+    pub async fn create_anonymous_user(
+        &self,
+        user_data: BrowserInfo,
+    ) -> Result<AnonymousUserModel> {
+        let anonymous_user = AnonymousUserActiveModel {
+            device_fingerprint: Set(user_data.device_fingerprint),
+            user_agent: Set(Some(user_data.user_agent)),
+            ip_address: Set(Some(user_data.ip_address)),
+            created_at: Set(Utc::now()),
+            updated_at: Set(Utc::now()),
+            ..Default::default()
+        };
+
+        let saved_user = anonymous_user.insert(&*self.connection).await.map_err(|e| {
+            println!("Failed to create anonymous user: {}", e);
+            e
+        })?;
+
+        Ok(saved_user)
     }
 }

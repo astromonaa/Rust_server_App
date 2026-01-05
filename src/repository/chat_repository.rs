@@ -20,9 +20,8 @@ pub struct DBChatRepository {
 #[derive(Default)]
 pub struct ChatFilter {
     pub id: Option<i32>,
-    pub user_id: Option<i32>,
-    pub anonymous_user_id: Option<i32>,
-    pub is_anonymous: Option<bool>,
+    pub user_id: i32,
+    pub is_anonymous: bool,
 }
 
 impl DBChatRepository {
@@ -30,12 +29,21 @@ impl DBChatRepository {
         Self { connection }
     }
 
-    pub async fn create_chat(&self, user_id: Option<i32>, anonymous_user_id: i32, is_anonymous: bool) -> Result<Model> {
+    fn add_user_id_filter(filter: ChatFilter, condition: Condition) -> Condition {
+        if filter.is_anonymous {
+            condition.add(Column::AnonymousUserId.eq(filter.user_id))
+        } else {
+            condition.add(Column::UserId.eq(filter.user_id))
+        }
+    }
+
+    pub async fn create_chat(&self, user_id: Option<i32>, anonymous_user_id: Option<i32>, is_anonymous: bool) -> Result<Model> {
         let new_chat = ActiveModel {
             user_id: Set(user_id),
             anonymous_user_id: Set(anonymous_user_id),
             is_anonymous: Set(is_anonymous),
             created_at: Set(Utc::now()),
+            updated_at: Set(Utc::now()),
             ..Default::default()
         };
 
@@ -46,24 +54,8 @@ impl DBChatRepository {
     pub async fn get_chat(&self, filter: ChatFilter) -> Result<Option<Model>> {
         let mut condition = Condition::all();
 
-        if filter.id.is_none() && filter.user_id.is_none() && filter.anonymous_user_id.is_none() {
-            return Err(DbErr::Custom("At least one filter parameter must be provided".into()))?;
-        }
-
         if let Some(id) = filter.id {
             condition = condition.add(Column::Id.eq(id));
-        }
-
-        if let Some(user_id) = filter.user_id {
-            condition = condition.add(Column::UserId.eq(user_id));
-        }
-
-        if let Some(anonymous_user_id) = filter.anonymous_user_id {
-            condition = condition.add(Column::AnonymousUserId.eq(anonymous_user_id));
-        }
-
-        if let Some(is_anonymous) = filter.is_anonymous {
-            condition = condition.add(Column::IsAnonymous.eq(is_anonymous));
         }
 
         let chat = Entity::find()
@@ -77,12 +69,29 @@ impl DBChatRepository {
     pub async fn get_chats(&self, filter: ChatFilter) -> Result<Vec<Model>> {
         let mut condition = Condition::all();
 
-        if let Some(user_id) = filter.user_id {
-            condition = condition.add(Column::UserId.eq(user_id));
+        condition = DBChatRepository::add_user_id_filter(filter, condition);
+
+        let chats = Entity::find()
+            .filter(condition)
+            .all(&*self.connection)
+            .await?;
+
+        Ok(chats)
+    }
+
+    pub async fn get_chats_by_user_and_anonymous(
+        &self,
+        user_id: Option<i32>,
+        anonymous_user_id: Option<i32>,
+    ) -> Result<Vec<Model>> {
+        let mut condition = Condition::any();
+
+        if let Some(uid) = user_id {
+            condition = condition.add(Column::UserId.eq(uid));
         }
 
-        if let Some(is_anonymous) = filter.is_anonymous {
-            condition = condition.add(Column::IsAnonymous.eq(is_anonymous));
+        if let Some(anon_id) = anonymous_user_id {
+            condition = condition.add(Column::AnonymousUserId.eq(anon_id));
         }
 
         let chats = Entity::find()
@@ -93,10 +102,10 @@ impl DBChatRepository {
         Ok(chats)
     }
 
-    pub async fn create_message(&self, chat_id: i32, content: String, is_from_user: bool) -> Result<MessageModel> {
+    pub async fn create_message(&self, chat_id: i32, text: String, is_from_user: bool) -> Result<MessageModel> {
         let new_message = MessageActiveModel {
             chat_id: Set(chat_id),
-            content: Set(content),
+            text: Set(text),
             is_from_user: Set(is_from_user),
             is_read: Set(false),
             created_at: Set(Utc::now()),
@@ -110,6 +119,17 @@ impl DBChatRepository {
     pub async fn get_messages(&self, chat_id: i32) -> Result<Vec<MessageModel>> {
         let messages = MessageEntity::find()
             .filter(crate::db::entities::message::Column::ChatId.eq(chat_id))
+            .all(&*self.connection)
+            .await?;
+
+        Ok(messages)
+    }
+
+    pub async fn get_messages_by_chat_ids(&self, chat_ids: Vec<i32>) -> Result<Vec<MessageModel>> {
+        use crate::db::entities::message::Column as MessageColumn;
+        
+        let messages = MessageEntity::find()
+            .filter(MessageColumn::ChatId.is_in(chat_ids))
             .all(&*self.connection)
             .await?;
 

@@ -32,6 +32,7 @@ pub async fn login(
 
     let user = user_controller.login(body).await?;
 
+
     let mut updated_token = Cookie::new("refresh_token", user.refresh_token.to_string());
     updated_token.set_http_only(true);
     updated_token.set_max_age(Duration::days(30));
